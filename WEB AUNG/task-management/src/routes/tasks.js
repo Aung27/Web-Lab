@@ -1,9 +1,14 @@
-// routes/tasks.js
+// src/routes/tasks.js
 const express = require('express');
 const router = express.Router();
 
-// GET /tasks - Retrieve all tasks
-router.get('/', (req, res) => {
+// Helper: Validate positive integer
+function isPositiveInteger(str) {
+  return /^\d+$/.test(String(str));
+}
+
+// GET /tasks → return all 5 tasks
+router.get('/tasks', (req, res) => {
   const tasks = req.app.locals.tasks;
   res.status(200).json({
     success: true,
@@ -11,38 +16,24 @@ router.get('/', (req, res) => {
   });
 });
 
-// POST /tasks - Create a new task
-router.post('/', (req, res) => {
-  try {
-    const { title } = req.body;
+// GET /task/:id → return task by ID
+router.get('/task/:id', (req, res) => {
+  const rawId = req.params.id;
 
-    // Input validation
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Title is required and must be a non-empty string'
-      });
-    }
-
-    const newTask = {
-      id: Date.now(), // simple unique id for lab
-      title: title.trim(),
-      completed: false
-    };
-
-    const tasks = req.app.locals.tasks;
-    tasks.push(newTask);
-
-    return res.status(201).json({
-      success: true,
-      data: newTask
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+  // 400 → invalid ID format (e.g., abc, 12ab)
+  if (!isPositiveInteger(rawId)) {
+    return res.status(400).json({ error: 'Invalid ID format' });
   }
+
+  const id = Number(rawId);
+  const tasks = req.app.locals.tasks;
+  const task = tasks.find(t => t.id === id);
+
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  return res.json(task);
 });
 
 module.exports = router;
